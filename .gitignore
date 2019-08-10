@@ -2,3 +2,4 @@
 .git/*
 **/__pycache__/*
 data/*
+train_results/*

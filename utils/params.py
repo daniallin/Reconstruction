@@ -4,8 +4,8 @@ import argparse
 def set_params():
     parser = argparse.ArgumentParser(description='Depth Estimation using Monocular Images')
     parser.add_argument('--dataset', type=str, default='nyu', choices=['nyu', 'kitti'])
-    parser.add_argument('--data_path', type=str, default='data/')
-    parser.add_argument('--class_num', type=int, help='the number of classes in segmantic')
+    parser.add_argument('--data_path', type=str, default='data/nyuv2')
+    parser.add_argument('--class_num', type=int, default=13,  help='the number of classes in segmantic')
     parser.add_argument('--weight', default='equal', type=str, help='multi-task weighting: equal, uncert, dwa')
     parser.add_argument('--temp', default=2.0, type=float, help='temperature for DWA (must be positive)')
 
@@ -13,7 +13,7 @@ def set_params():
     parser.add_argument('--use_cuda', type=bool, default=True)
     parser.add_argument('--gpu_ids', type=str, default=['0'], help='IDs of GPUs to use')
     parser.add_argument('--lr', type=float, default=0.0001)
-    parser.add_argument('--batch_size', type=int, default=10)
+    parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum (default: 0.9)')
     parser.add_argument('--weight_decay', type=float, default=1e-3, help='w-decay (default: 5e-4)')
@@ -23,7 +23,7 @@ def set_params():
 
     # model
     parser.add_argument('--model_name', type=str, default='mtan', choices=['mtan'])
-    parser.add_argument('--pretrained_net', type=str, default='models/pretrained/nyu.h5')
+    parser.add_argument('--pretrained_net', type=str, default=None)
     parser.add_argument('--resume', type=str, default=None, help='Start training from an existing model.')
     parser.add_argument('--save_path', type=str, default='train_results/')
 

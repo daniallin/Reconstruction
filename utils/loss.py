@@ -47,7 +47,7 @@ def get_miou(pred, gt, class_num):
     return batch_avg / batch_size
 
 
-def get_iou(self, pred, gt):
+def get_iou(pred, gt):
     _, x_pred_label = torch.max(pred, dim=1)
     batch_size = pred.size(0)
     for i in range(batch_size):

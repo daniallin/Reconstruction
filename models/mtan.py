@@ -9,7 +9,7 @@ class SegMtan(nn.Module):
         super(SegMtan, self).__init__()
         # initialise network parameters
         filter = [64, 128, 256, 512, 512]
-        # self.class_nb = 13
+        self.class_nb = 13
 
         # define encoder decoder layers
         self.encoder_block = nn.ModuleList([self.conv_layer([3, filter[0]])])
