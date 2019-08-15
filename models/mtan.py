@@ -167,3 +167,11 @@ class SegMtan(nn.Module):
 
         return [t1_pred, t2_pred, t3_pred], self.logsigma
 
+
+if __name__ == '__main__':
+    import torch
+    model = SegMtan()
+    input = torch.rand(1, 3, 256, 256)
+    output, logsigma = model(input)
+    print(output[0].size())
+    print(logsigma[0])

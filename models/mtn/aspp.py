@@ -22,15 +22,15 @@ class ASPPBlock(nn.Module):
 
 
 class ASPP(nn.Module):
-    def __init__(self, backbone, output_scale, sync_bn=False):
+    def __init__(self, args):
         super(ASPP, self).__init__()
-        if backbone == 'resnext':
+        if args.backbone == 'resnext':
             inplanes = 2048
         else:
             inplanes = 2048
-        if output_scale == 16:
+        if args.output_scale == 16:
             dilations = [1, 6, 12, 18]
-        elif output_scale == 8:
+        elif args.output_scale == 8:
             dilations = [1, 12, 24, 36]
         else:
             raise NotImplementedError
@@ -42,10 +42,10 @@ class ASPP(nn.Module):
 
         self.global_avg_pool = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)),
                                              nn.Conv2d(inplanes, 256, 1, 1, bias=False),
-                                             BatchNorm(256, sync_bn),
+                                             BatchNorm(256, args.sync_bn),
                                              nn.ReLU())
         self.last_conv = nn.Sequential(nn.Conv2d(256*5, 256, 1, bias=False),
-                                       BatchNorm(256, sync_bn),
+                                       BatchNorm(256, args.sync_bn),
                                        nn.ReLU())
         self.dropout = nn.Dropout(0.5)
 

@@ -189,7 +189,7 @@ class ResNet(nn.Module):
         low_feature_8 = x
         x = self.layer3(x)
         x = self.layer4(x)
-        low_features = (low_feature_2, low_feature_4, low_feature_8)
+        low_features = (low_feature_8, low_feature_4, low_feature_2)
 
         return x, low_features
 

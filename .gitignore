@@ -3,3 +3,5 @@
 **/__pycache__/*
 data/*
 train_results/*
+models/mtn/SEresnext.py
+models/mtn/sknet.py

@@ -8,15 +8,11 @@ from models.mtn.multi_decoder import Decoder
 
 
 class ReconstructMTN(nn.Module):
-    def __init__(self, backbone='resnext', sync_bn=False, num_classes=10,
-                 freeze_bn=False, output_scale=16, pretrained=False):
+    def __init__(self, args, img_size, freeze_bn=False):
         super(ReconstructMTN, self).__init__()
-        if backbone == 'drn':
-            output_scale = 8
-
-        self.encoder = resnext101_32x8d(pretrained, replace_stride_with_dilation=[False, False, True])
-        self.aspp = ASPP(backbone, output_scale, sync_bn)
-        self.decoder = Decoder(backbone, num_classes, sync_bn)
+        self.encoder = resnext101_32x8d(args.use_pretrain, replace_stride_with_dilation=[False, False, True])
+        self.aspp = ASPP(args)
+        self.decoder = Decoder(args, img_size)
 
         if freeze_bn:
             for m in self.modules():
@@ -27,11 +23,11 @@ class ReconstructMTN(nn.Module):
         output, low_level_feature = self.encoder(input)
         output = self.aspp(output)
         output = self.decoder(output, low_level_feature)
-        print(output[0].size())
+        # print(output[0].size())
         for i in range(len(output)):
             output[i] = F.interpolate(output[i], size=input.size()[2:], mode='bilinear', align_corners=True)
 
-        return F.interpolate(output[i], size=input.size()[2:], mode='bilinear', align_corners=True)
+        return output
 
 
 if __name__ == '__main__':
@@ -39,7 +35,7 @@ if __name__ == '__main__':
     model.eval()
     input = torch.rand(1, 3, 512, 512)
     output = model(input)
-    print(output.size())
+    print(output[0].size())
 
 
 
