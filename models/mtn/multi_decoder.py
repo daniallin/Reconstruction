@@ -72,7 +72,9 @@ class Decoder(nn.Module):
         self.depth_relu2 = nn.LeakyReLU(0.2)
 
         # vision odometry
-        in_size = np.prod(args.batch_size * args.seq_len * 256 * (img_size // args.output_scale))
+        vo_chan = 2
+        self.vo_conv = nn.Conv2d(256, vo_chan, kernel_size=1, stride=1)
+        in_size = vo_chan * img_size[0] * img_size[1] / args.output_scale / args.output_scale
         self.rnn = nn.LSTM(
                     input_size=int(in_size),
                     hidden_size=args.rnn_hidden_size,
@@ -82,7 +84,6 @@ class Decoder(nn.Module):
         self.rnn_drop_out = nn.Dropout(args.rnn_dropout_out)
         self.linear = nn.Linear(in_features=args.rnn_hidden_size, out_features=6)
 
-        # self.vo_low = conv_low_features
         initial_weight(self.modules())
 
     def forward(self, x, low_level_features):
@@ -100,8 +101,8 @@ class Decoder(nn.Module):
         depth_out = self.depth_relu2(self.depth_conv2(depth_x))
 
         # vision odometry
-        print(x.size())
-        vo_x = x.view(self.args.batch_size, self.args.seq_len, -1)
+        vo_x = self.vo_conv(x)
+        vo_x = vo_x.view(self.args.batch_size, self.args.seq_len, -1)
         vo_out, hc = self.rnn(vo_x)
         vo_out = self.rnn_drop_out(vo_out)
         vo_out = self.linear(vo_out)
@@ -113,10 +114,10 @@ if __name__ == '__main__':
     args = set_params()
     model = Decoder(args, np.array((512, 512)))
     model.eval()
-    x = torch.randn(1, 256, 32, 32)
-    low0 = torch.randn(1, 64, 256, 256)
-    low1 = torch.randn(1, 256, 128, 128)
-    low2 = torch.randn(1, 512, 64, 64)
+    x = torch.randn(2, 256, 32, 32)
+    low0 = torch.randn(2, 64, 256, 256)
+    low1 = torch.randn(2, 256, 128, 128)
+    low2 = torch.randn(2, 512, 64, 64)
     y = model(x, [low2, low1, low0])
     print(y[0].size())
     print(y[1].size())

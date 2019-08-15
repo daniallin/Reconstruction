@@ -14,7 +14,7 @@ def set_params():
     parser.add_argument('--gpu_ids', type=str, default=['0'], help='IDs of GPUs to use')
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--seq_len', type=int, default=1)
+    parser.add_argument('--seq_len', type=int, default=2)
     parser.add_argument('--sync_bn', type=bool, default=False, help='whether using sync batch normalization')
     parser.add_argument('--rnn_hidden_size', type=int, default=1000)
     parser.add_argument('--rnn_dropout_between', type=float, default=0.)
