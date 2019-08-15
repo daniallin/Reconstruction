@@ -1,5 +1,13 @@
 import torch.nn as nn
 from models.sync_batchnorm import SynchronizedBatchNorm2d
+from models.mtan import SegMtan
+
+
+def build_model(model_name):
+    if model_name == "mtan":
+        return SegMtan()
+    else:
+        raise NotImplementedError
 
 
 def BatchNorm(planes, sync_bn=False):
