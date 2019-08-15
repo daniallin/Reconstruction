@@ -2,7 +2,7 @@ import os
 import time
 
 from utils.params import set_params
-from utils.helper import set_random_seed
+from utils.helper import set_random_seed, AverageMeter
 from utils.keeper import Keeper
 from utils.loss import *
 from models import build_model
@@ -30,6 +30,7 @@ def main(args):
         model.load_state_dict(checkpoint['state_dict'])
 
         optimizer.load_state_dict(checkpoint['optimizer'])
+        chk_loss = checkpoint['chk_loss']
         best_loss = checkpoint['best_loss']
         args.start_epoch = checkpoint['epoch'] + 1
     else:
@@ -47,14 +48,14 @@ def main(args):
 
     # -------------------- training -------------------- #
     alpha_weight = np.ones([3, args.epochs])
-    avg_cost = np.zeros([args.epochs, 24], dtype=np.float32)
     T = args.temp
     for epoch in range(args.epochs):
         e_time = time.time()
         log.info('training: epoch {}/{} \n'.format(epoch+1, args.epochs))
 
         model.train()
-        cost = np.zeros(24, dtype=np.float32)
+        cost = np.zeros(26, dtype=np.float32)
+        avg_cost = np.zeros(26, dtype=np.float32)
 
         # apply Dynamic Weight Average
         if args.weight == 'dwa':
@@ -67,37 +68,38 @@ def main(args):
                 alpha_weight[0, epoch] = 3 * np.exp(w_1 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
                 alpha_weight[1, epoch] = 3 * np.exp(w_2 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
                 alpha_weight[2, epoch] = 3 * np.exp(w_3 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
-        #
-        # for k, (train_image, train_label, train_depth, train_normal) in enumerate(train_loader):
-        #     train_label = train_label.type(torch.LongTensor)
-        #     if args.use_cuda:
-        #         train_image, train_label, train_depth, train_normal = \
-        #             train_image.cuda(), train_label.cuda(), train_depth.cuda(), train_normal.cuda()
-        #
-        #     optimizer.zero_grad()
-        #
-        #     train_preds, logsigma = model(train_image)
-        #
-        #     train_losses = get_loss(train_preds, (train_label, train_depth, train_normal))
-        #
-        #     if args.weight == 'equal' or args.weight == 'dwa':
-        #         loss = torch.mean(sum(alpha_weight[i, epoch] * train_losses[i] for i in range(3)))
-        #     else:
-        #         loss = sum(1 / (2 * torch.exp(logsigma[i])) * train_losses[i] + logsigma[i] / 2 for i in range(3))
-        #
-        #     loss.backward()
-        #     optimizer.step()
-        #
-        #     log.info('train loss of batch/epoch {}/{} is {}'.format(epoch, k, loss))
-        #
-        #     cost[0] = train_losses[0].item()
-        #     cost[1] = get_miou(train_preds[0], train_label, class_num=args.class_num).item()
-        #     cost[2] = get_iou(train_preds[0], train_label).item()
-        #     cost[3] = train_losses[1].item()
-        #     cost[4], cost[5] = depth_error(train_preds[1], train_depth)
-        #     cost[6] = train_losses[2].item()
-        #     cost[7], cost[8], cost[9], cost[10], cost[11] = normal_error(train_preds[2], train_normal)
-        #     avg_cost[epoch, :12] += cost[:12] / train_bts
+
+        for k, (train_image, train_label, train_depth, train_normal) in enumerate(train_loader):
+            train_label = train_label.type(torch.LongTensor)
+            if args.use_cuda:
+                train_image, train_label, train_depth, train_normal = \
+                    train_image.cuda(), train_label.cuda(), train_depth.cuda(), train_normal.cuda()
+
+            optimizer.zero_grad()
+
+            train_preds, logsigma = model(train_image)
+
+            train_losses = get_loss(train_preds, (train_label, train_depth, train_normal))
+
+            if args.weight == 'equal' or args.weight == 'dwa':
+                train_loss = torch.mean(sum(alpha_weight[i, epoch] * train_losses[i] for i in range(3)))
+            else:
+                train_loss = sum(1 / (2 * torch.exp(logsigma[i])) * train_losses[i] + logsigma[i] / 2 for i in range(3))
+
+            train_loss.backward()
+            optimizer.step()
+
+            log.info('train loss of batch/epoch {}/{} is {}'.format(epoch, k, train_loss))
+
+            cost[0] = train_losses[0].item()
+            cost[1] = get_miou(train_preds[0], train_label, class_num=args.class_num).item()
+            cost[2] = get_iou(train_preds[0], train_label).item()
+            cost[3] = train_losses[1].item()
+            cost[4], cost[5] = depth_error(train_preds[1], train_depth)
+            cost[6] = train_losses[2].item()
+            cost[7], cost[8], cost[9], cost[10], cost[11] = normal_error(train_preds[2], train_normal)
+            cost[12] = train_loss
+            avg_cost[:13] += cost[:13] / train_bts
 
         # evaluating test data
         model.eval()
@@ -108,23 +110,50 @@ def main(args):
                     val_image, val_label, val_depth, val_normal = \
                         val_image.cuda(), val_label.cuda(), val_depth.cuda(), val_normal.cuda()
 
-                val_preds, _ = model(val_image)
+                val_preds, val_logsigma = model(val_image)
                 val_losses = get_loss(val_preds, (val_label, val_depth, val_normal))
 
-                cost[12] = val_losses[0].item()
-                cost[13] = get_miou(val_preds[0], val_label, args.class_num).item()
-                cost[14] = get_iou(val_preds[0], val_label).item()
-                cost[15] = val_losses[1].item()
-                cost[16], cost[17] = depth_error(val_preds[1], val_depth)
-                cost[18] = val_losses[2].item()
-                cost[19], cost[20], cost[21], cost[22], cost[23] = normal_error(val_preds[2], val_normal)
+                if args.weight == 'equal' or args.weight == 'dwa':
+                    val_loss = torch.mean(sum(alpha_weight[i, epoch] * val_losses[i] for i in range(3)))
+                else:
+                    val_loss = sum(
+                        1 / (2 * torch.exp(val_logsigma[i])) * val_losses[i] + val_logsigma[i] / 2 for i in range(3))
 
-                avg_cost[epoch, 12:] += cost[12:] / val_bts
+                cost[13] = val_losses[0].item()
+                cost[14] = get_miou(val_preds[0], val_label, args.class_num).item()
+                cost[15] = get_iou(val_preds[0], val_label).item()
+                cost[16] = val_losses[1].item()
+                cost[17], cost[18] = depth_error(val_preds[1], val_depth)
+                cost[19] = val_losses[2].item()
+                cost[20], cost[21], cost[22], cost[23], cost[24] = normal_error(val_preds[2], val_normal)
+                cost[25] = val_loss
+
+                avg_cost[13:] += cost[13:] / val_bts
 
         print(
             'Epoch: {:04d} | TRAIN: {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f}'
             'TEST: {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} '
             .format(epoch, *avg_cost[epoch, :]))
+        keeper.save_loss(avg_cost.cpu().numpy(), 'losses.csv')
+
+        if avg_cost[-1] < best_loss:
+            best_loss = avg_cost[-1]
+            keeper.save_checkpoint({
+                'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'best_loss': best_loss,
+            }, 'best_model.pth')
+
+        keeper.save_checkpoint({
+            'epoch': epoch,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'chk_loss': avg_cost[12],
+            'best_loss': best_loss,
+        })
+
+        log.info('training time of epoch {}/{} is {} \n'.format(epoch + 1, args.epochs, time.time() - e_time))
 
 
 if __name__ == '__main__':
