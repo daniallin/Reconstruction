@@ -1,7 +1,8 @@
 .idea/*
 .git/*
 **/__pycache__/*
-data/*
+dataset/*
 train_results/*
 models/mtn/SEresnext.py
 models/mtn/sknet.py
+.DS_Store
