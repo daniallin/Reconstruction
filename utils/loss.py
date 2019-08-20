@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn.functional as F
 
 
-def get_loss(preds, gts):
+def get_mtan_loss(preds, gts):
     # binary mark to mask out undefined pixel space
     binary_mask = (torch.sum(gts[1], dim=1) != 0).type(torch.FloatTensor).unsqueeze(1)
 
@@ -15,6 +15,24 @@ def get_loss(preds, gts):
 
     # normal loss: dot product
     loss3 = 1 - torch.sum((preds[2] * preds[2]) * binary_mask) / torch.nonzero(binary_mask).size(0)
+
+    return [loss1, loss2, loss3]
+
+
+def get_mtn_loss(preds, gts):
+    # binary mark to mask out undefined pixel space
+    binary_mask = (torch.sum(gts[1], dim=1) != 0).type(torch.FloatTensor).unsqueeze(1)
+
+    # depth loss: l1 norm
+    loss1 = torch.sum(torch.abs(preds[0] - preds[0]) * binary_mask) / torch.nonzero(binary_mask).size(0)
+
+    # semantic loss: depth-wise cross entropy
+    loss2 = F.nll_loss(preds[1], gts[1], ignore_index=-1)
+
+    # pose loss
+    angle_loss = torch.nn.functional.mse_loss(preds[2][:, :, :3], gts[2][:, :, :3])
+    translation_loss = torch.nn.functional.mse_loss(preds[2][:, :, 3:], gts[2][:, :, 3:])
+    loss3 = (100 * angle_loss + translation_loss)
 
     return [loss1, loss2, loss3]
 

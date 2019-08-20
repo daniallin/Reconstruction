@@ -8,13 +8,13 @@ from models.mtn.multi_decoder import Decoder
 
 
 class ReconstructMTN(nn.Module):
-    def __init__(self, args, img_size, freeze_bn=False):
+    def __init__(self, args):
         super(ReconstructMTN, self).__init__()
         self.encoder = resnext101_32x8d(args.use_pretrain, replace_stride_with_dilation=[False, False, True])
         self.aspp = ASPP(args)
-        self.decoder = Decoder(args, img_size)
+        self.decoder = Decoder(args, args.crop_size)
 
-        if freeze_bn:
+        if args.freeze_bn:
             for m in self.modules():
                 if isinstance(m, nn.BatchNorm2d):
                     m.eval()
@@ -24,7 +24,7 @@ class ReconstructMTN(nn.Module):
         output = self.aspp(output)
         output = self.decoder(output, low_level_feature)
         # print(output[0].size())
-        for i in range(len(output)):
+        for i in range(len(output)-1):
             output[i] = F.interpolate(output[i], size=input.size()[2:], mode='bilinear', align_corners=True)
 
         return output

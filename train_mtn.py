@@ -10,7 +10,7 @@ from dataload import data_loader
 
 
 def main(args):
-    model = build_model(args.model_name)
+    model = build_model(args.model_name, args)
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=args.weight_decay)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
 
@@ -54,8 +54,8 @@ def main(args):
         log.info('training: epoch {}/{} \n'.format(epoch+1, args.epochs))
 
         model.train()
-        cost = np.zeros(26, dtype=np.float32)
-        avg_cost = np.zeros(26, dtype=np.float32)
+        cost = np.zeros(16, dtype=np.float32)
+        avg_cost = np.zeros(16, dtype=np.float32)
 
         # apply Dynamic Weight Average
         if args.weight == 'dwa':
@@ -69,17 +69,16 @@ def main(args):
                 alpha_weight[1, epoch] = 3 * np.exp(w_2 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
                 alpha_weight[2, epoch] = 3 * np.exp(w_3 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
 
-        for k, (train_image, train_label, train_depth, train_normal) in enumerate(train_loader):
-            train_label = train_label.type(torch.LongTensor)
+        for k, (train_img, train_depth, train_sem, train_pose) in enumerate(train_loader):
             if args.use_cuda:
-                train_image, train_label, train_depth, train_normal = \
-                    train_image.cuda(), train_label.cuda(), train_depth.cuda(), train_normal.cuda()
+                train_img, train_depth, train_sem, train_pose = \
+                    train_img.cuda(), train_depth.cuda(), train_sem.cuda(), train_pose.cuda()
 
             optimizer.zero_grad()
 
-            train_preds, logsigma = model(train_image)
+            train_preds, logsigma = model(train_img)
 
-            train_losses = get_loss(train_preds, (train_label, train_depth, train_normal))
+            train_losses = get_mtn_loss(train_preds, (train_depth, train_sem, train_pose))
 
             if args.weight == 'equal' or args.weight == 'dwa':
                 train_loss = torch.mean(sum(alpha_weight[i, epoch] * train_losses[i] for i in range(3)))
@@ -90,28 +89,26 @@ def main(args):
             optimizer.step()
 
             log.info('train loss of batch/epoch {}/{} is {}'.format(epoch, k, train_loss))
-
             cost[0] = train_losses[0].item()
-            cost[1] = get_miou(train_preds[0], train_label, class_num=args.class_num).item()
-            cost[2] = get_iou(train_preds[0], train_label).item()
-            cost[3] = train_losses[1].item()
-            cost[4], cost[5] = depth_error(train_preds[1], train_depth)
+            cost[1], cost[2] = depth_error(train_preds[0], train_depth)
+
+            cost[3] = train_losses[3].item()
+            cost[4] = get_miou(train_preds[1], train_sem, class_num=args.class_num).item()
+            cost[5] = get_iou(train_preds[5], train_sem).item()
             cost[6] = train_losses[2].item()
-            cost[7], cost[8], cost[9], cost[10], cost[11] = normal_error(train_preds[2], train_normal)
-            cost[12] = train_loss
-            avg_cost[:13] += cost[:13] / train_bts
+            cost[7] = train_loss
+            avg_cost[:8] += cost[:8] / train_bts
 
         # evaluating test data
         model.eval()
         with torch.no_grad():
-            for k, (val_image, val_label, val_depth, val_normal) in enumerate(val_loader):
-                val_label = val_label.type(torch.LongTensor)
+            for k, (val_img, val_depth, val_sem, val_pose) in enumerate(val_loader):
                 if args.use_cuda:
-                    val_image, val_label, val_depth, val_normal = \
-                        val_image.cuda(), val_label.cuda(), val_depth.cuda(), val_normal.cuda()
+                    val_img, val_depth, val_sem, val_pose = \
+                        val_img.cuda(), val_depth.cuda(), val_sem.cuda(), val_pose.cuda()
 
-                val_preds, val_logsigma = model(val_image)
-                val_losses = get_mtan_loss(val_preds, (val_label, val_depth, val_normal))
+                val_preds, val_logsigma = model(val_img)
+                val_losses = get_mtn_loss(val_preds, (val_depth, val_sem, val_pose))
 
                 if args.weight == 'equal' or args.weight == 'dwa':
                     val_loss = torch.mean(sum(alpha_weight[i, epoch] * val_losses[i] for i in range(3)))
@@ -119,16 +116,15 @@ def main(args):
                     val_loss = sum(
                         1 / (2 * torch.exp(val_logsigma[i])) * val_losses[i] + val_logsigma[i] / 2 for i in range(3))
 
-                cost[13] = val_losses[0].item()
-                cost[14] = get_miou(val_preds[0], val_label, args.class_num).item()
-                cost[15] = get_iou(val_preds[0], val_label).item()
-                cost[16] = val_losses[1].item()
-                cost[17], cost[18] = depth_error(val_preds[1], val_depth)
-                cost[19] = val_losses[2].item()
-                cost[20], cost[21], cost[22], cost[23], cost[24] = normal_error(val_preds[2], val_normal)
-                cost[25] = val_loss
+                cost[8] = val_losses[0].item()
+                cost[9], cost[10] = depth_error(val_preds[0], val_depth)
 
-                avg_cost[13:] += cost[13:] / val_bts
+                cost[11] = val_losses[3].item()
+                cost[12] = get_miou(val_preds[1], val_sem, class_num=args.class_num).item()
+                cost[13] = get_iou(val_preds[5], val_sem).item()
+                cost[14] = val_losses[2].item()
+                cost[15] = val_loss
+                avg_cost[8:] += cost[8:] / val_bts
 
         print(
             'Epoch: {:04d} | TRAIN: {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f}'
@@ -167,6 +163,7 @@ if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in args.gpu_ids)
     args.use_cuda = torch.cuda.is_available()
 
+    print(args)
     keeper.save_experiment_config()
 
     start_time = time.time()

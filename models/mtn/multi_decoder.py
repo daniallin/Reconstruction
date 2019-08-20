@@ -55,6 +55,7 @@ class Decoder(nn.Module):
             self.num_channels = 256
         else:
             raise NotImplementedError
+        self.logsigma = nn.Parameter(torch.FloatTensor([-0.5, -0.5, -0.5]))
 
         # semantic segmentation
         self.seg_up1 = SegUpSample(self.low_feature_size[0], 64, args.sync_bn)
@@ -107,7 +108,7 @@ class Decoder(nn.Module):
         vo_out = self.rnn_drop_out(vo_out)
         vo_out = self.linear(vo_out)
 
-        return [seg_out, depth_out, vo_out]
+        return [seg_out, depth_out, vo_out], self.logsigma
 
 
 if __name__ == '__main__':
