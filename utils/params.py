@@ -9,8 +9,8 @@ def set_params():
     parser.add_argument('--class_num', type=int, default=10,  help='the number of classes in segmantic')
     parser.add_argument('--weight', default='equal', type=str, help='multi-task weighting: equal, uncert, dwa')
     parser.add_argument('--temp', default=2.0, type=float, help='temperature for DWA (must be positive)')
-    parser.add_argument('--img_mean', default=None, type=tuple)
-    parser.add_argument('--img_std', default=None, type=tuple)
+    parser.add_argument('--img_mean', default=(0.4695473891639639, 0.5105454725388299, 0.4300407379334988), type=tuple)
+    parser.add_argument('--img_std', default=(0.288617005264684, 0.2911478421011405, 0.2964820763906757), type=tuple)
     parser.add_argument('--minus_point_5', default=False, type=bool)
     parser.add_argument('--crop_size', type=float, default=(320, 960))
     parser.add_argument('--resize_mode', default='crop', type=str)
@@ -49,6 +49,10 @@ def set_params():
 
 
 
-
+# Numbers of frames in training dataset: 2126
+# mean_tensor =  [0.4695473891639639, 0.5105454725388299, 0.4300407379334988]
+# mean_np =  [119.73433290361544, 130.1889760160859, 109.6601286780393]
+# std_tensor =  [0.288617005264684, 0.2911478421011405, 0.2964820763906757]
+# std_np =  [73.59734829470447, 74.24285335838441, 75.60289938939736]
 
 

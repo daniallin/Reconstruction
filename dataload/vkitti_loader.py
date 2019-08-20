@@ -11,12 +11,12 @@ class VirtualKITTI(Dataset):
     def __init__(self, dataframe, args):
         self.df = dataframe
         self.seq_len_list = list(self.df.seq_len)
-        self.imgs = np.asarray(self.df.image_path)
-        self.depth_imgs = np.asarray(self.df.depth_img)
-        self.semantic_imgs = np.asarray(self.df.semantic_img)
-        self.semantic_label = np.asarray(self.df.semantic_label)
-        self.camera_pose = np.asarray(self.df.camera_pose)
-        self.camera_pose_6d = np.asarray(self.df.camera_pose_6d)
+        self.imgs = self.df.image_path
+        self.depth_imgs = self.df.depth_img
+        self.semantic_imgs = self.df.semantic_img
+        self.semantic_label = self.df.semantic_label
+        self.camera_pose = self.df.camera_pose
+        self.camera_pose_6d = self.df.camera_pose_6d
 
         # Transforms
         transform_ops = []

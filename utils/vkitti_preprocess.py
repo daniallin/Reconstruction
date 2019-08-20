@@ -79,7 +79,7 @@ class DataProcess():
             sem_labels = pd.read_csv(self.sp[1][i], sep=' ', index_col=False)
             depth_imgs = glob.glob('{}/*.png'.format(self.dp[i]))
             depth_imgs.sort()
-            poses = pd.read_csv(self.cp[i], sep=' ', index_col=False)
+            poses = pd.read_csv(self.cp[i], sep=' ', index_col=0)
 
             for st in start_frames:
                 seq_len = np.random.randint(seq_len-1, seq_len+2)
@@ -103,10 +103,10 @@ class DataProcess():
                 df_depth_img += depth_img_slt
                 df_pose += pose_slt
                 df_pose_6d += pose_slt_6d
-            data = {'seq_len': df_seq_len, 'semantic_img': df_sem_img,
+            data = {'seq_len': df_seq_len, 'image_path': df_img, 'semantic_img': df_sem_img,
                     'semantic_label': df_sem_label, 'depth_img': df_depth_img,
                     'camera_pose': df_pose, 'camera_pose_6d': df_pose_6d}
-            df = pd.DataFrame(data, columns=['seq_len', 'semantic_img', 'semantic_label',
+            df = pd.DataFrame(data, columns=['seq_len', 'image_path', 'semantic_img', 'semantic_label',
                                              'depth_img', 'camera_pose', 'camera_pose_6d'])
             save_name = self.cp[i].split('/')[-1].split('.')[0] + '_'\
                         + str(args.seq_len) + '.pickle'
@@ -120,10 +120,10 @@ class DataProcess():
         poses = list()
         for p in ps:
             frame_id = int(p[0])
-            SE3 = p[1:].reshape((4, 4))
+            SE3 = np.array(p[1:]).reshape((4, 4))
             tran = np.array([SE3[0][3], SE3[1][3], SE3[2][3]])
             angles = self.rotation_matrix_to_euler_angles(SE3[:3, :3])
-            pose = np.concatenate((frame_id, angles, tran))
+            pose = np.concatenate((np.array([frame_id]), angles, tran))
             poses.append(pose)
 
         return poses  # rpyxyz
@@ -217,5 +217,7 @@ if __name__ == '__main__':
     data_process = DataProcess(rgb, semantic, depth, camera_pose, args)
     data_process.get_csv()
 
-    img_path_list = glob.glob(np.append(rgb)+'/*.png')
+    img_path_list = []
+    for p in rgb:
+        img_path_list.extend(glob.glob(p + '/*.png'))
     calculate_rgb_mean_std(img_path_list, minus_point_5=args.minus_point_5)
