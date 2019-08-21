@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models import BatchNorm, initial_weight
+from models.mtn.base import BatchNorm, initial_weight
 from utils.params import set_params
 
 
