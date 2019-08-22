@@ -59,10 +59,9 @@ class DataProcess():
         self.args = args
 
     def get_csv(self):
-        seq_len = self.args.seq_len
         if self.args.sample_times > 1:
-            sample_interval = int(np.ceil(seq_len / self.args.sample_times))
-            start_frames = list(range(0, seq_len, sample_interval))
+            sample_interval = int(np.ceil(self.args.seq_len / self.args.sample_times))
+            start_frames = list(range(0, self.args.seq_len, sample_interval))
             print('Sample start from frame {}'.format(start_frames))
         else:
             start_frames = [0]
@@ -82,7 +81,7 @@ class DataProcess():
             poses = pd.read_csv(self.cp[i], sep=' ', index_col=0)
 
             for st in start_frames:
-                seq_len = np.random.randint(seq_len-1, seq_len+2)
+                seq_len = np.random.randint(self.args.seq_len-1, self.args.seq_len+2)
                 num_frames = len(poses) - st
                 jump = seq_len - self.args.overlap
                 residual = num_frames % jump
@@ -111,9 +110,9 @@ class DataProcess():
             save_name = self.cp[i].split('/')[-1].split('.')[0] + '_'\
                         + str(args.seq_len) + '.pickle'
             # print(save_name)
-            if not os.path.exists('../dataset/vkitti'):
-                os.mkdir('../dataset/vkitti')
-            df.to_pickle(os.path.join('../dataset/vkitti', save_name))
+            if not os.path.exists('../datainfo/vkitti'):
+                os.mkdir('../datainfo/vkitti')
+            df.to_pickle(os.path.join('../dataonfo/vkitti', save_name))
 
     def get_6d_poses(self, ps):
         """ For 6dof pose representation """

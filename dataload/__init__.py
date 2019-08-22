@@ -17,15 +17,19 @@ def data_loader(args, **kwargs):
         return train_loader, val_loader
     elif args.dataset == 'vkitti':
         train_df, val_df = list(), list()
-        for i, p in enumerate(list(os.listdir(args.vkitti_path)).sort()):
-            data_path = os.path.join(args.vkitti_path, p)
+        pathes = os.listdir(args.vkitti_datainfo)
+        pathes.sort()
+        for i, p in enumerate(pathes):
+            data_path = os.path.join(args.vkitti_datainfo, p)
             df = pd.read_pickle(data_path)
             if i < 3:
                 train_df.append(df)
             else:
                 val_df.append(df)
-        train_loader = DataLoader(pd.concat(train_df), args)
-        val_loader = DataLoader(pd.concat(val_df), args)
+        train_set = VirtualKITTI(pd.concat(train_df, ignore_index=True), args)
+        val_set = VirtualKITTI(pd.concat(val_df, ignore_index=True), args)
+        train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, **kwargs)
+        val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True, **kwargs)
         return train_loader, val_loader
 
     else:

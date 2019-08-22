@@ -24,6 +24,7 @@ class ASPPBlock(nn.Module):
 class ASPP(nn.Module):
     def __init__(self, args):
         super(ASPP, self).__init__()
+        sync_bn = args.sync_bn
         if args.backbone == 'resnext':
             inplanes = 2048
         else:

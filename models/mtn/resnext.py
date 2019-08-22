@@ -217,7 +217,7 @@ def resnext101_32x8d(pretrained=False, progress=True, **kwargs):
 
 if __name__ == '__main__':
     import torch
-    model = resnext101_32x8d(replace_stride_with_dilation=[False, False, True])
+    model = resnext101_32x8d(True, replace_stride_with_dilation=[False, False, True])
     # model = resnet101()
     input = torch.rand(1, 3, 512, 512)
     output, low_level_feature = model(input)

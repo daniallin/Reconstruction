@@ -6,13 +6,14 @@ def set_params():
     parser.add_argument('--dataset', type=str, default='vkitti', choices=['nyu', 'vkitti'])
     parser.add_argument('--nyu_path', type=str, default='dataset/nyuv2')
     parser.add_argument('--vkitti_path', type=str, default='dataset/vkitti/')
+    parser.add_argument('--vkitti_datainfo', type=str, default='datainfo/vkitti/')
     parser.add_argument('--class_num', type=int, default=10,  help='the number of classes in segmantic')
     parser.add_argument('--weight', default='equal', type=str, help='multi-task weighting: equal, uncert, dwa')
     parser.add_argument('--temp', default=2.0, type=float, help='temperature for DWA (must be positive)')
     parser.add_argument('--img_mean', default=(0.4695473891639639, 0.5105454725388299, 0.4300407379334988), type=tuple)
     parser.add_argument('--img_std', default=(0.288617005264684, 0.2911478421011405, 0.2964820763906757), type=tuple)
     parser.add_argument('--minus_point_5', default=False, type=bool)
-    parser.add_argument('--crop_size', type=float, default=(320, 960))
+    parser.add_argument('--crop_size', type=float, default=(320, 480))
     parser.add_argument('--resize_mode', default='crop', type=str)
 
     # train

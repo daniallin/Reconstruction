@@ -11,7 +11,7 @@ class VirtualKITTI(Dataset):
     def __init__(self, dataframe, args):
         self.df = dataframe
         self.seq_len_list = list(self.df.seq_len)
-        self.imgs = self.df.image_path
+        self.imgs = np.asarray(self.df.image_path)
         self.depth_imgs = self.df.depth_img
         self.semantic_imgs = self.df.semantic_img
         self.semantic_label = self.df.semantic_label
@@ -28,6 +28,7 @@ class VirtualKITTI(Dataset):
         self.transformer = transforms.Compose(transform_ops)
         self.minus_point_5 = args.minus_point_5
         self.normalizer = transforms.Normalize(mean=args.img_mean, std=args.img_std)
+        self.gray_normalizer = transforms.Normalize(mean=[0.5], std=[0.5])
 
         self.data_len = len(self.df)
 
@@ -48,9 +49,9 @@ class VirtualKITTI(Dataset):
         for img_path in self.depth_imgs[index]:
             img = Image.open(img_path)
             img = self.transformer(img)
-            if self.minus_point_5:
-                img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
-            img = self.normalizer(img)
+            # if self.minus_point_5:
+            #     img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
+            # img = self.gray_normalizer(img)
             img = img.unsqueeze(0)
             depth_img_seq.append(img)
         depth_img_seq = torch.cat(depth_img_seq, 0)
@@ -59,27 +60,27 @@ class VirtualKITTI(Dataset):
         for img_path in self.semantic_imgs[index]:
             img = Image.open(img_path)
             img = self.transformer(img)
-            if self.minus_point_5:
-                img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
-            img = self.normalizer(img)
+            # if self.minus_point_5:
+            #     img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
+            # img = self.normalizer(img)
             img = img.unsqueeze(0)
             sem_img_seq.append(img)
         sem_img_seq = torch.cat(sem_img_seq, 0)
 
         # camera poses
         # the first number in camera poses is the frame id.
-        poses_6d = np.hsplit(self.camera_pose_6d[index], np.array([1]))[-1]
-        raw_poses = np.split(self.camera_pose[index], np.array([1]))[-1]
+        poses_6d = np.hsplit(np.asarray(self.camera_pose_6d[index]), np.array([1]))[-1]
+        raw_poses = np.asarray(self.camera_pose[index])
 
         # opposite rotation of the first frame
-        first_R = raw_poses[0].reshape((4, 4))[:3][:3].T
+        first_R = raw_poses[0].reshape((4, 4))[:3, :3].T
 
         # get relative pose w.r.t. the first frame in the sequence
         poses_6d[1:] = poses_6d[1:] - poses_6d[0]
 
         # rotate the sequence relative to the first frame
         for pose_6d in poses_6d[1:]:
-            location = first_R.dot(pose_6d[3:].numpy())
+            location = first_R.dot(pose_6d[3:])
             pose_6d[3:] = location[:]
 
         # get relative pose w.r.t. previous frame

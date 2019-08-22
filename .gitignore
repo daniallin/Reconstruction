@@ -2,6 +2,7 @@
 .git/*
 **/__pycache__/*
 dataset/*
+datainfo/*
 train_results/*
 models/mtn/SEresnext.py
 models/mtn/sknet.py
