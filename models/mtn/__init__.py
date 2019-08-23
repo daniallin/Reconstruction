@@ -31,10 +31,12 @@ class ReconstructMTN(nn.Module):
         output = self.aspp(output)
         output, logsigma = self.decoder(output, low_level_feature, seq_len)
         # print(output[0].size())
+
         for i in range(len(output)-1):
             output[i] = F.interpolate(output[i], size=input.size()[2:], mode='bilinear', align_corners=True)
-        for i in range(len(output)):
-            output[i] = output[i].view(batch_size, seq_len, output.size()[1:])
+            out_size = output[i].size()
+            print(out_size)
+            output[i] = output[i].view(batch_size, seq_len, out_size[1], out_size[2], out_size[3])
 
         return output, logsigma
 

@@ -27,6 +27,8 @@ def get_mtn_loss(preds, gts):
     loss1 = torch.sum(torch.abs(preds[0] - preds[0]) * binary_mask) / torch.nonzero(binary_mask).size(0)
 
     # semantic loss: depth-wise cross entropy
+    print(preds[1].size())
+    print(gts[1].size())
     loss2 = F.nll_loss(preds[1], gts[1], ignore_index=-1)
 
     # pose loss

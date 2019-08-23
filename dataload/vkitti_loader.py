@@ -36,7 +36,7 @@ class VirtualKITTI(Dataset):
         # get RGB images
         img_seq = []
         for img_path in self.imgs[index]:
-            img = Image.open(img_path)
+            img = Image.open(img_path).convert('RGB')
             img = self.transformer(img)
             if self.minus_point_5:
                 img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
