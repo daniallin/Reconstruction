@@ -12,7 +12,7 @@ class ReconstructMTN(nn.Module):
         super(ReconstructMTN, self).__init__()
         self.encoder = resnext101_32x8d(args.use_pretrain, replace_stride_with_dilation=[False, False, True])
         self.aspp = ASPP(args)
-        self.decoder = Decoder(args, args.crop_size)
+        self.decoder = Decoder(args)
 
         if args.freeze_bn:
             for m in self.modules():
@@ -20,14 +20,23 @@ class ReconstructMTN(nn.Module):
                     m.eval()
 
     def forward(self, input):
+        # input: batch_size, seq_;en, channel, height, width
+        # input = torch.cat((input[:, :-1], input[:, 1:]), dim=2)
+        # print(input.size())
+        batch_size = input.size(0)
+        seq_len = input.size(1)
+        input = input.view(batch_size*seq_len, input.size(2), input.size(3), input.size(4))
+
         output, low_level_feature = self.encoder(input)
         output = self.aspp(output)
-        output = self.decoder(output, low_level_feature)
+        output, logsigma = self.decoder(output, low_level_feature, seq_len)
         # print(output[0].size())
         for i in range(len(output)-1):
             output[i] = F.interpolate(output[i], size=input.size()[2:], mode='bilinear', align_corners=True)
+        for i in range(len(output)):
+            output[i] = output[i].view(batch_size, seq_len, output.size()[1:])
 
-        return output
+        return output, logsigma
 
 
 if __name__ == '__main__':

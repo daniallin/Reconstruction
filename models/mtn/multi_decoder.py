@@ -40,16 +40,17 @@ class SegUpSample(nn.Module):
 
     def forward(self, input, low_feature):
         seg_low_out = self.seg_low_conv(low_feature)
-        up_x = F.interpolate(x, size=seg_low_out.size()[2:], mode='bilinear', align_corners=True)
+        up_x = F.interpolate(input, size=seg_low_out.size()[2:], mode='bilinear', align_corners=True)
         output = torch.cat((up_x, seg_low_out), dim=1)
         output = self.seg_conv(output)
         return output
 
 
 class Decoder(nn.Module):
-    def __init__(self, args, img_size):
+    def __init__(self, args):
         super(Decoder, self).__init__()
         self.args = args
+        img_size = args.crop_size
         if args.backbone == 'resnext':
             self.low_feature_size = [512, 256, 64]
             self.num_channels = 256
@@ -74,8 +75,9 @@ class Decoder(nn.Module):
 
         # vision odometry
         vo_chan = 2
-        self.vo_conv = nn.Conv2d(256, vo_chan, kernel_size=1, stride=1)
+        self.vo_conv = nn.Conv2d(chan, vo_chan, kernel_size=1, stride=1)
         in_size = vo_chan * img_size[0] * img_size[1] / args.output_scale / args.output_scale
+        # print("in_size is {}".format(in_size))
         self.rnn = nn.LSTM(
                     input_size=int(in_size),
                     hidden_size=args.rnn_hidden_size,
@@ -87,7 +89,7 @@ class Decoder(nn.Module):
 
         initial_weight(self.modules())
 
-    def forward(self, x, low_level_features):
+    def forward(self, x, low_level_features, seq_len):
         # semantic segmentation
         seg_x = self.seg_up1(x, low_level_features[0])
         seg_x = self.seg_up2(seg_x, low_level_features[1])
@@ -103,12 +105,12 @@ class Decoder(nn.Module):
 
         # vision odometry
         vo_x = self.vo_conv(x)
-        vo_x = vo_x.view(self.args.batch_size, self.args.seq_len, -1)
+        vo_x = vo_x.view(self.args.batch_size, seq_len, -1)
         vo_out, hc = self.rnn(vo_x)
         vo_out = self.rnn_drop_out(vo_out)
         vo_out = self.linear(vo_out)
 
-        return [seg_out, depth_out, vo_out], self.logsigma
+        return [depth_out, seg_out, vo_out], self.logsigma
 
 
 if __name__ == '__main__':

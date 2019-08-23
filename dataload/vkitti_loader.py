@@ -90,7 +90,7 @@ class VirtualKITTI(Dataset):
         for pose_6d in poses_6d[1:]:
             pose_6d[0] = self.normalize_angle_delta(pose_6d[0])
 
-        camera_pose_seq = poses_6d
+        camera_pose_seq = torch.FloatTensor(poses_6d)
 
         return img_seq, depth_img_seq, sem_img_seq, camera_pose_seq
 
