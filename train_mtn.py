@@ -70,6 +70,12 @@ def main(args):
                 alpha_weight[2, epoch] = 3 * np.exp(w_3 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
 
         for k, (train_img, train_depth, train_sem, train_pose) in enumerate(train_loader):
+            batch_size = train_img.size(0)
+            seq_len = train_img.size(1)
+            print('train depth size is {}'.format(train_depth))
+            print('train semantic size is {}'.format(train_sem))
+            train_depth = train_depth.view(batch_size * seq_len, train_depth.size(2), train_depth.size(3), train_depth.size(4))
+            train_sem = train_sem.view(batch_size * seq_len, train_sem.size(2), train_sem.size(3), train_sem.size(4))
             if args.use_cuda:
                 train_img, train_depth, train_sem, train_pose = \
                     train_img.cuda(), train_depth.cuda(), train_sem.cuda(), train_pose.cuda()
@@ -94,7 +100,7 @@ def main(args):
 
             cost[3] = train_losses[3].item()
             cost[4] = get_miou(train_preds[1], train_sem, class_num=args.class_num).item()
-            cost[5] = get_iou(train_preds[5], train_sem).item()
+            cost[5] = get_iou(train_preds[1], train_sem).item()
             cost[6] = train_losses[2].item()
             cost[7] = train_loss
             avg_cost[:8] += cost[:8] / train_bts
@@ -121,7 +127,7 @@ def main(args):
 
                 cost[11] = val_losses[3].item()
                 cost[12] = get_miou(val_preds[1], val_sem, class_num=args.class_num).item()
-                cost[13] = get_iou(val_preds[5], val_sem).item()
+                cost[13] = get_iou(val_preds[1], val_sem).item()
                 cost[14] = val_losses[2].item()
                 cost[15] = val_loss
                 avg_cost[8:] += cost[8:] / val_bts

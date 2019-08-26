@@ -7,6 +7,25 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
+sem2label = {
+    'Terrain': 0,
+    'Tree': 1,
+    'Vegetation': 2,
+    'Building': 3,
+    'Road': 4,
+    'GuardRail': 5,
+    'TrafficSign': 6,
+    'TrafficLight': 7,
+    'Pole': 8,
+    'Misc': 9,
+    'Truck': 10,
+    'Car': 11,
+    'Van': 12,
+    'Sky': 99
+}
+rgb2label = {}
+
+
 class VirtualKITTI(Dataset):
     def __init__(self, dataframe, args):
         self.df = dataframe
@@ -17,6 +36,9 @@ class VirtualKITTI(Dataset):
         self.semantic_label = self.df.semantic_label
         self.camera_pose = self.df.camera_pose
         self.camera_pose_6d = self.df.camera_pose_6d
+
+        for index, row in self.semantic_label.iterrows():
+            rgb2label[(row['r'], row['g'], row['b'])] = sem2label[row['Category(:id)'].split(':')[0]]
 
         # Transforms
         transform_ops = []
@@ -49,22 +71,17 @@ class VirtualKITTI(Dataset):
         for img_path in self.depth_imgs[index]:
             img = Image.open(img_path)
             img = self.transformer(img)
-            # if self.minus_point_5:
-            #     img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
-            # img = self.gray_normalizer(img)
             img = img.unsqueeze(0)
             depth_img_seq.append(img)
         depth_img_seq = torch.cat(depth_img_seq, 0)
 
         sem_img_seq = []
         for img_path in self.semantic_imgs[index]:
-            img = Image.open(img_path)
-            img = self.transformer(img)
-            # if self.minus_point_5:
-            #     img = img - 0.5  # from [0, 1] -> [-0.5, 0.5]
-            # img = self.normalizer(img)
-            img = img.unsqueeze(0)
-            sem_img_seq.append(img)
+            img = Image.open(img_path).convert('RGB')
+            label_map = np.apply_along_axis(lambda r: rgb2label[tuple(r)], 2, img)
+            label_map = self.transformer(label_map)
+            label_map = label_map.unsqueeze(0)
+            sem_img_seq.append(label_map)
         sem_img_seq = torch.cat(sem_img_seq, 0)
 
         # camera poses

@@ -22,7 +22,6 @@ class ReconstructMTN(nn.Module):
     def forward(self, input):
         # input: batch_size, seq_;en, channel, height, width
         # input = torch.cat((input[:, :-1], input[:, 1:]), dim=2)
-        # print(input.size())
         batch_size = input.size(0)
         seq_len = input.size(1)
         input = input.view(batch_size*seq_len, input.size(2), input.size(3), input.size(4))
@@ -34,9 +33,9 @@ class ReconstructMTN(nn.Module):
 
         for i in range(len(output)-1):
             output[i] = F.interpolate(output[i], size=input.size()[2:], mode='bilinear', align_corners=True)
-            out_size = output[i].size()
-            print(out_size)
-            output[i] = output[i].view(batch_size, seq_len, out_size[1], out_size[2], out_size[3])
+            # out_size = output[i].size()
+            # print(out_size)
+            # output[i] = output[i].view(batch_size, seq_len, out_size[1], out_size[2], out_size[3])
 
         return output, logsigma
 

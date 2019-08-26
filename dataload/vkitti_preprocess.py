@@ -68,7 +68,7 @@ class DataProcess():
 
         for i in range(len(self.rp)):
             df_seq_len, df_img, df_sem_img = list(), list(), list()
-            df_sem_label, df_depth_img, df_pose = list(), list(), list()
+            df_depth_img, df_pose = list(), list()
             df_pose_6d = list()
 
             imgs = glob.glob('{}/*.png'.format(self.rp[i]))
@@ -90,7 +90,6 @@ class DataProcess():
                 print(seq_len, jump, num_frames, st)
                 img_slt = [imgs[i:i+seq_len] for i in range(st, num_frames, jump)]
                 sem_img_slt = [sem_imgs[i:i+seq_len] for i in range(st, num_frames, jump)]
-                sem_label_slt = [sem_labels[i:i+seq_len] for i in range(st, num_frames, jump)]
                 depth_img_slt = [depth_imgs[i:i+seq_len] for i in range(st, num_frames, jump)]
                 pose_slt = [poses[i:i+seq_len] for i in range(st, num_frames, jump)]
                 pose_slt_6d = [self.get_6d_poses(poses[i:i+seq_len]) for i in range(st, num_frames, jump)]
@@ -98,12 +97,11 @@ class DataProcess():
                 df_seq_len += [len(xs) for xs in img_slt]
                 df_img += img_slt
                 df_sem_img += sem_img_slt
-                df_sem_label += sem_label_slt
                 df_depth_img += depth_img_slt
                 df_pose += pose_slt
                 df_pose_6d += pose_slt_6d
             data = {'seq_len': df_seq_len, 'image_path': df_img, 'semantic_img': df_sem_img,
-                    'semantic_label': df_sem_label, 'depth_img': df_depth_img,
+                    'semantic_label': sem_labels, 'depth_img': df_depth_img,
                     'camera_pose': df_pose, 'camera_pose_6d': df_pose_6d}
             df = pd.DataFrame(data, columns=['seq_len', 'image_path', 'semantic_img', 'semantic_label',
                                              'depth_img', 'camera_pose', 'camera_pose_6d'])

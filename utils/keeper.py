@@ -1,7 +1,8 @@
 import os
+import glob
 import time
 import torch
-import glob
+import json
 import logging
 import pickle
 import matplotlib.pyplot as plt
@@ -25,10 +26,13 @@ class Keeper(object):
         torch.save(state, filename)
 
     def save_experiment_config(self):
-        config_file = os.path.join(self.experiment_dir, 'parameters.txt')
-
-        with open(config_file, 'wb') as f:
-            pickle.dump(self.args, f)
+        config_file = os.path.join(self.experiment_dir, 'parameters.json')
+        confs = dict()
+        for key, item in vars(self.args).items():
+            confs[key] = item
+        with open(config_file, 'w') as f:
+            json.dump(confs, f)
+            # pickle.dump(self.args, f)
 
     def save_img(self, input, target, pred, img_name='test.jpg'):
         img_path = os.path.join(self.experiment_dir, 'val_img')

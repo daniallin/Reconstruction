@@ -6,8 +6,14 @@ The multi-task means 3 tasks: depth estimation using single image, semantic segm
 ### Running process
 1. Download the virtual-kitti dataset, then run the `utils/vkitti_preprocess.py` to get the structural data. The pickle files will be saved in `../dataset/vkitti`.
    > Remember to modify the `path` to your own path
+
+1.1. `create_npy.py` : https://github.com/VisualComputingInstitute/vkitti3D-dataset
    
 2. Run the `train_mtn.py`.
+
+
+### Request
+PyTorch 1.2+
 
 
 

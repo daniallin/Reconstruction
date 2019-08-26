@@ -3,6 +3,8 @@
 **/__pycache__/*
 dataset/*
 datainfo/*
+dataload/create*
+dataload/vi*
 train_results/*
 models/mtn/SEresnext.py
 models/mtn/sknet.py
