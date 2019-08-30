@@ -21,7 +21,7 @@ sem2label = {
     'Truck': 10,
     'Car': 11,
     'Van': 12,
-    'Sky': 99
+    'Sky': 13
 }
 rgb2label = {}
 
@@ -33,7 +33,7 @@ class VirtualKITTI(Dataset):
         self.imgs = np.asarray(self.df.image_path)
         self.depth_imgs = self.df.depth_img
         self.semantic_imgs = self.df.semantic_img
-        self.semantic_label = self.df.semantic_label
+        self.semantic_label = self.df.iloc[:, -4:].dropna(axis=0, how='all')
         self.camera_pose = self.df.camera_pose
         self.camera_pose_6d = self.df.camera_pose_6d
 
@@ -79,7 +79,7 @@ class VirtualKITTI(Dataset):
         for img_path in self.semantic_imgs[index]:
             img = Image.open(img_path).convert('RGB')
             label_map = np.apply_along_axis(lambda r: rgb2label[tuple(r)], 2, img)
-            label_map = self.transformer(label_map)
+            label_map = self.transformer(Image.fromarray(label_map))
             label_map = label_map.unsqueeze(0)
             sem_img_seq.append(label_map)
         sem_img_seq = torch.cat(sem_img_seq, 0)

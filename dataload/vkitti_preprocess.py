@@ -101,21 +101,21 @@ class DataProcess():
                 df_pose += pose_slt
                 df_pose_6d += pose_slt_6d
             data = {'seq_len': df_seq_len, 'image_path': df_img, 'semantic_img': df_sem_img,
-                    'semantic_label': sem_labels, 'depth_img': df_depth_img,
-                    'camera_pose': df_pose, 'camera_pose_6d': df_pose_6d}
-            df = pd.DataFrame(data, columns=['seq_len', 'image_path', 'semantic_img', 'semantic_label',
+                    'depth_img': df_depth_img, 'camera_pose': df_pose, 'camera_pose_6d': df_pose_6d}
+            df = pd.DataFrame(data, columns=['seq_len', 'image_path', 'semantic_img',
                                              'depth_img', 'camera_pose', 'camera_pose_6d'])
+            df = pd.concat([df, sem_labels], axis=1)
             save_name = self.cp[i].split('/')[-1].split('.')[0] + '_'\
                         + str(args.seq_len) + '.pickle'
             # print(save_name)
             if not os.path.exists('../datainfo/vkitti'):
                 os.mkdir('../datainfo/vkitti')
-            df.to_pickle(os.path.join('../dataonfo/vkitti', save_name))
+            df.to_pickle(os.path.join('../datainfo/vkitti', save_name))
 
     def get_6d_poses(self, ps):
         """ For 6dof pose representation """
         poses = list()
-        for p in ps:
+        for p in ps.iterrows():
             frame_id = int(p[0])
             SE3 = np.array(p[1:]).reshape((4, 4))
             tran = np.array([SE3[0][3], SE3[1][3], SE3[2][3]])
