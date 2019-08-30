@@ -46,6 +46,24 @@ class SegUpSample(nn.Module):
         return output
 
 
+class SegModel(nn.Module):
+    def __init__(self, low_feature_size):
+        super(SegModel, self).__init__()
+        # semantic segmentation
+        self.seg_up1 = SegUpSample(low_feature_size[0], 64, args.sync_bn)
+        self.seg_up2 = SegUpSample(low_feature_size[1], 64, args.sync_bn)
+        self.seg_up3 = SegUpSample(low_feature_size[2], 64, args.sync_bn)
+        self.seg_last = nn.Conv2d(256, args.class_num, kernel_size=1, stride=1)
+
+    def forward(self, x, low_level_features):
+        # semantic segmentation
+        seg_x = self.seg_up1(x, low_level_features[0])
+        seg_x = self.seg_up2(seg_x, low_level_features[1])
+        seg_x = self.seg_up3(seg_x, low_level_features[2])
+        seg_out = self.seg_last(seg_x)
+        return seg_out
+
+
 class Decoder(nn.Module):
     def __init__(self, args):
         super(Decoder, self).__init__()
@@ -58,11 +76,8 @@ class Decoder(nn.Module):
             raise NotImplementedError
         self.logsigma = nn.Parameter(torch.FloatTensor([-0.5, -0.5, -0.5]))
 
-        # semantic segmentation
-        self.seg_up1 = SegUpSample(self.low_feature_size[0], 64, args.sync_bn)
-        self.seg_up2 = SegUpSample(self.low_feature_size[1], 64, args.sync_bn)
-        self.seg_up3 = SegUpSample(self.low_feature_size[2], 64, args.sync_bn)
-        self.seg_last = nn.Conv2d(256, args.class_num, kernel_size=1, stride=1)
+        self.segmentation_model = SegModel(self.low_feature_size)
+
 
         # depth estimation
         chan = int(self.num_channels)
@@ -115,13 +130,13 @@ class Decoder(nn.Module):
 
 if __name__ == '__main__':
     args = set_params()
-    model = Decoder(args, np.array((512, 512)))
+    model = Decoder(args)
     model.eval()
     x = torch.randn(2, 256, 32, 32)
     low0 = torch.randn(2, 64, 256, 256)
     low1 = torch.randn(2, 256, 128, 128)
     low2 = torch.randn(2, 512, 64, 64)
-    y = model(x, [low2, low1, low0])
+    y = model(x, [low2, low1, low0], 2)
     print(y[0].size())
     print(y[1].size())
     print(y[2].size())

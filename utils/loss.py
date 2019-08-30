@@ -11,7 +11,7 @@ def get_mtan_loss(preds, gts):
     loss1 = F.nll_loss(preds[0], gts[0], ignore_index=-1)
 
     # depth loss: l1 norm
-    loss2 = torch.sum(torch.abs(preds[1] - preds[1]) * binary_mask) / torch.nonzero(binary_mask).size(0)
+    loss2 = torch.sum(torch.abs(preds[1] - gts[1]) * binary_mask) / torch.nonzero(binary_mask).size(0)
 
     # normal loss: dot product
     loss3 = 1 - torch.sum((preds[2] * preds[2]) * binary_mask) / torch.nonzero(binary_mask).size(0)
@@ -24,15 +24,15 @@ def get_mtn_loss(preds, gts):
     binary_mask = (torch.sum(gts[1], dim=1) != 0).type(torch.FloatTensor).unsqueeze(1)
 
     # depth loss: l1 norm
-    loss1 = torch.sum(torch.abs(preds[0] - preds[0]) * binary_mask) / torch.nonzero(binary_mask).size(0)
+    loss1 = torch.sum(torch.abs(preds[0] - gts[0]) * binary_mask) / torch.nonzero(binary_mask).size(0)
 
     # semantic loss: depth-wise cross entropy
-    print('prediction 0 size is : {}'.format(preds[0].size()))
-    print('ground truth 0 size is : {}'.format(gts[0].size()))
-    print('prediction 1 size is : {}'.format(preds[1].size()))
-    print('ground truth 1 size is : {}'.format(gts[1].size()))
-    print('prediction 2 size is : {}'.format(preds[2].size()))
-    print('ground truth 2 size is : {}'.format(gts[2].size()))
+    # print('prediction 0 size is : {}'.format(preds[0].size()))
+    # print('ground truth 0 size is : {}'.format(gts[0].size()))
+    # print('prediction 1 size is : {}'.format(preds[1].size()))
+    # print('ground truth 1 size is : {}'.format(gts[1].size()))
+    # print('prediction 2 size is : {}'.format(preds[2].size()))
+    # print('ground truth 2 size is : {}'.format(gts[2].size()))
     loss2 = F.nll_loss(preds[1], gts[1], ignore_index=-1)
 
     # pose loss

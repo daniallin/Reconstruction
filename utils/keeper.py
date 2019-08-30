@@ -34,18 +34,19 @@ class Keeper(object):
             json.dump(confs, f)
             # pickle.dump(self.args, f)
 
-    def save_img(self, input, target, pred, img_name='test.jpg'):
+    def save_img(self, plot_obj, img_name='test.jpg'):
         img_path = os.path.join(self.experiment_dir, 'val_img')
-        if self.args.use_cuda:
-            input, target, pred = input.cpu().numpy(), target.cpu().numpy(), pred.cpu().numpy()
+        for i in range(len(plot_obj)):
+            plot_obj[i] = plot_obj[i].cpu().numpy().transpose(1, 2, 0)
         if not os.path.exists(img_path):
             os.makedirs(img_path)
         img_file = os.path.join(img_path, img_name)
         plt.subplot(221)
-        plt.imshow(input)
+        plt.imshow(plot_obj[0])
         plt.subplot(222)
-        plt.imshow(target)
+        plt.imshow(plot_obj[1])
         plt.subplot(223)
+        plt.imshow(plot_obj[2])
         plt.savefig(img_file)
         plt.clf()
 

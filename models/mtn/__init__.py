@@ -41,11 +41,13 @@ class ReconstructMTN(nn.Module):
 
 
 if __name__ == '__main__':
-    model = ReconstructMTN()
+    from utils.params import set_params
+    args = set_params()
+    model = ReconstructMTN(args)
     model.eval()
-    input = torch.rand(1, 3, 512, 512)
+    input = torch.rand(1, 1, 3, 320, 480)
     output = model(input)
-    print(output[0].size())
+    print(output[0][0].size())
 
 
 

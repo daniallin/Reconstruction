@@ -50,13 +50,13 @@ def main(args):
     # -------------------- training -------------------- #
     alpha_weight = np.ones([3, args.epochs])
     T = args.temp
+    avg_cost = np.zeros([args.epochs, 16], dtype=np.float32)
     for epoch in range(args.epochs):
         e_time = time.time()
         log.info('training: epoch {}/{} \n'.format(epoch+1, args.epochs))
 
         model.train()
         cost = np.zeros(16, dtype=np.float32)
-        avg_cost = np.zeros(16, dtype=np.float32)
 
         # apply Dynamic Weight Average
         if args.weight == 'dwa':
@@ -70,43 +70,43 @@ def main(args):
                 alpha_weight[1, epoch] = 3 * np.exp(w_2 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
                 alpha_weight[2, epoch] = 3 * np.exp(w_3 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
 
-        for k, (train_img, train_depth, train_sem, train_pose) in enumerate(tqdm(train_loader)):
-            train_sem = train_sem.type(torch.LongTensor)
-            train_depth = train_depth.type(torch.FloatTensor)
-            batch_size = train_img.size(0)
-            seq_len = train_img.size(1)
-            # print('train depth size is {}'.format(train_depth.size()))
-            # print('train semantic size is {}'.format(train_sem.size()))
-            train_depth = train_depth.view(batch_size * seq_len, train_depth.size(2), train_depth.size(3), train_depth.size(4))
-            train_sem = train_sem.view(batch_size * seq_len, train_sem.size(3), train_sem.size(4))
-            if args.use_cuda:
-                train_img, train_depth, train_sem, train_pose = \
-                    train_img.cuda(), train_depth.cuda(), train_sem.cuda(), train_pose.cuda()
-
-            optimizer.zero_grad()
-
-            train_preds, logsigma = model(train_img)
-
-            train_losses = get_mtn_loss(train_preds, (train_depth, train_sem, train_pose))
-
-            if args.weight == 'equal' or args.weight == 'dwa':
-                train_loss = torch.mean(sum(alpha_weight[i, epoch] * train_losses[i] for i in range(3)))
-            else:
-                train_loss = sum(1 / (2 * torch.exp(logsigma[i])) * train_losses[i] + logsigma[i] / 2 for i in range(3))
-
-            train_loss.backward()
-            optimizer.step()
-
-            log.info('train loss of batch/epoch {}/{} is {}'.format(epoch, k, train_loss))
-            cost[0] = train_losses[0].item()
-            cost[1], cost[2] = depth_error(train_preds[0], train_depth)
-
-            cost[3] = train_losses[1].item()
-            cost[4] = get_miou(train_preds[1], train_sem, class_num=args.class_num).item()
-            cost[5] = get_iou(train_preds[1], train_sem).item()
-            cost[6] = train_losses[2].item()
-            cost[7] = train_loss
-            avg_cost[:8] += cost[:8] / train_bts
+        # for k, (train_img, train_depth, train_sem, train_pose) in enumerate(tqdm(train_loader)):
+        #     train_sem = train_sem.type(torch.LongTensor)
+        #     train_depth = train_depth.type(torch.FloatTensor)
+        #     batch_size = train_img.size(0)
+        #     seq_len = train_img.size(1)
+        #     # print('train depth size is {}'.format(train_depth.size()))
+        #     # print('train semantic size is {}'.format(train_sem.size()))
+        #     train_depth = train_depth.view(batch_size * seq_len, train_depth.size(2), train_depth.size(3), train_depth.size(4))
+        #     train_sem = train_sem.view(batch_size * seq_len, train_sem.size(3), train_sem.size(4))
+        #     if args.use_cuda:
+        #         train_img, train_depth, train_sem, train_pose = \
+        #             train_img.cuda(), train_depth.cuda(), train_sem.cuda(), train_pose.cuda()
+        #
+        #     optimizer.zero_grad()
+        #
+        #     train_preds, logsigma = model(train_img)
+        #
+        #     train_losses = get_mtn_loss(train_preds, (train_depth, train_sem, train_pose))
+        #
+        #     if args.weight == 'equal' or args.weight == 'dwa':
+        #         train_loss = torch.mean(sum(alpha_weight[i, epoch] * train_losses[i] for i in range(3)))
+        #     else:
+        #         train_loss = sum(1 / (2 * torch.exp(logsigma[i])) * train_losses[i] + logsigma[i] / 2 for i in range(3))
+        #
+        #     train_loss.backward()
+        #     optimizer.step()
+        #
+        #     log.info('train loss of batch/epoch {}/{} is {}'.format(epoch, k, train_loss))
+        #     cost[0] = train_losses[0].item()
+        #     cost[1], cost[2] = depth_error(train_preds[0], train_depth)
+        #
+        #     cost[3] = train_losses[1].item()
+        #     cost[4] = get_miou(train_preds[1], train_sem, class_num=args.class_num).item()
+        #     cost[5] = get_iou(train_preds[1], train_sem).item()
+        #     cost[6] = train_losses[2].item()
+        #     cost[7] = train_loss
+        #     avg_cost[epoch, :8] += cost[:8] / train_bts
 
         # evaluating test data
         model.eval()
@@ -116,8 +116,7 @@ def main(args):
                 val_depth = val_depth.type(torch.FloatTensor)
                 batch_size = val_img.size(0)
                 seq_len = val_img.size(1)
-                # print('train depth size is {}'.format(train_depth.size()))
-                # print('train semantic size is {}'.format(train_sem.size()))
+
                 val_depth = val_depth.view(batch_size * seq_len, val_depth.size(2), val_depth.size(3), val_depth.size(4))
                 val_sem = val_sem.view(batch_size * seq_len, val_sem.size(3), val_sem.size(4))
                 if args.use_cuda:
@@ -125,6 +124,10 @@ def main(args):
                         val_img.cuda(), val_depth.cuda(), val_sem.cuda(), val_pose.cuda()
 
                 val_preds, val_logsigma = model(val_img)
+
+                if k % 20 == 1:
+                    keeper.save_img([val_img[0, 0], val_depth[0], val_preds[0][0]])
+
                 val_losses = get_mtn_loss(val_preds, (val_depth, val_sem, val_pose))
 
                 if args.weight == 'equal' or args.weight == 'dwa':
@@ -141,16 +144,14 @@ def main(args):
                 cost[13] = get_iou(val_preds[1], val_sem).item()
                 cost[14] = val_losses[2].item()
                 cost[15] = val_loss
-                avg_cost[8:] += cost[8:] / val_bts
+                avg_cost[epoch, 8:] += cost[8:] / val_bts
 
-        print(
-            'Epoch: {:04d} | TRAIN: {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f}'
-            'TEST: {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} | {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} '
-            .format(epoch, *avg_cost[epoch, :]))
-        keeper.save_loss(avg_cost.cpu().numpy(), 'losses.csv')
+        print('Epoch: {:04d} | TRAIN: {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} | '
+              '{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} '.format(epoch, *avg_cost[epoch, :]))
+        keeper.save_loss(avg_cost[epoch, :], 'losses.csv')
 
-        if avg_cost[-1] < best_loss:
-            best_loss = avg_cost[-1]
+        if avg_cost[epoch, -1] < best_loss:
+            best_loss = avg_cost[epoch, -1]
             keeper.save_checkpoint({
                 'epoch': epoch,
                 'state_dict': model.state_dict(),
