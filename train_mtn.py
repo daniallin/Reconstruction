@@ -1,6 +1,7 @@
 import os
 import time
 from tqdm import tqdm
+from torch import nn
 
 from utils.params import set_params
 from utils.helper import set_random_seed, AverageMeter
@@ -52,7 +53,8 @@ def main(args):
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
 
-    model = model.cuda() if args.use_cuda else model
+    # run on multiple GPUs by DataParallel
+    model = nn.DataParallel(model).cuda() if args.use_cuda else nn.DataParallel(model)
 
     # -------------------- training -------------------- #
     alpha_weight = np.ones([3, args.epochs])
@@ -78,6 +80,7 @@ def main(args):
                 alpha_weight[2, epoch] = 3 * np.exp(w_3 / T) / (np.exp(w_1 / T) + np.exp(w_2 / T) + np.exp(w_3 / T))
 
         for k, (train_img, train_depth, train_sem, train_pose) in enumerate(tqdm(train_loader)):
+            if k > 0: break
             train_sem = train_sem.type(torch.LongTensor)
             train_depth = train_depth.type(torch.FloatTensor)
             batch_size = train_img.size(0)
@@ -119,6 +122,7 @@ def main(args):
         model.eval()
         with torch.no_grad():
             for k, (val_img, val_depth, val_sem, val_pose) in enumerate(tqdm(val_loader)):
+                if k > 0: break
                 val_sem = val_sem.type(torch.LongTensor)
                 val_depth = val_depth.type(torch.FloatTensor)
                 batch_size = val_img.size(0)
@@ -153,8 +157,8 @@ def main(args):
                 cost[15] = val_loss
                 avg_cost[epoch, 8:] += cost[8:] / val_bts
 
-        print('Epoch: {:04d} | TRAIN: {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} | '
-              '{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} '.format(epoch, *avg_cost[epoch, :]))
+        log.info('Epoch: {:04d} | TRAIN: {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} | '
+                 '{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} '.format(epoch, *avg_cost[epoch, :]))
         keeper.save_loss(avg_cost[epoch, :], 'losses.csv')
 
         if avg_cost[epoch, -1] < best_loss:
@@ -166,6 +170,7 @@ def main(args):
                 'best_loss': best_loss,
             }, 'best_model.pth')
 
+        log.info('Saving model ...')
         keeper.save_checkpoint({
             'epoch': epoch,
             'state_dict': model.state_dict(),
@@ -185,8 +190,11 @@ if __name__ == '__main__':
     log = keeper.setup_logger()
     log.info('Welcome to summoner\'s rift')
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in args.gpu_ids)
     args.use_cuda = torch.cuda.is_available()
+    if args.use_cuda:
+        os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in args.gpu_ids)
+        print("Let's use GPU(s): {}. Current Device: {}".format(
+            torch.cuda.device_count(), torch.cuda.current_device()))
 
     print(args)
     keeper.save_experiment_config()

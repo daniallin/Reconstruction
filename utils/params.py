@@ -46,7 +46,7 @@ def set_params():
     parser.add_argument('--model_name', type=str, default='reconstruct_mtn', choices=['mtan', 'reconstruct_mtn'])
     parser.add_argument('--pretrained_net', type=str, default=None)
     parser.add_argument('--use_pretrain', type=bool, default=True, help='whether using pretrained encoder network')
-    parser.add_argument('--resume', type=str, default=None, help='Start training from an existing model.')
+    parser.add_argument('--resume', type=str, default='train_results/2019-09-04-21-36-vkitti/checkpoint.pth', help='Start training from an existing model.')
     parser.add_argument('--save_path', type=str, default='train_results/')
 
     args = parser.parse_args()

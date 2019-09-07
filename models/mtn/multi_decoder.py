@@ -30,7 +30,7 @@ class Attention(nn.Module):
 
     def forward(self, x1, x2):
         energy = self._score(x1, x2)
-        return F.softmax(energy)
+        return F.softmax(energy, dim=1)
 
     def _score(self, x1, x2):
         """Calculate the relevance of a particular encoder output in respect to the decoder hidden."""
@@ -82,7 +82,7 @@ class SegUpSample(nn.Module):
 
 
 class SegModel(nn.Module):
-    def __init__(self, low_feature_size):
+    def __init__(self, low_feature_size, args):
         super(SegModel, self).__init__()
         # semantic segmentation
         self.seg_up1 = SegUpSample(low_feature_size[0], 64, args.sync_bn)
@@ -121,7 +121,7 @@ class DepthModel(nn.Module):
 
 
 class OdometryModel(nn.Module):
-    def __init__(self, chan, img_size):
+    def __init__(self, chan, img_size, args):
         super(OdometryModel, self).__init__()
         self.low_pool = nn.MaxPool2d(2, 2)
         self.attention1 = Attention(512, 256, method='concat')
@@ -166,12 +166,12 @@ class Decoder(nn.Module):
             raise NotImplementedError
         self.logsigma = nn.Parameter(torch.FloatTensor([-0.5, -0.5, -0.5]))
 
-        self.seg_decoder = SegModel(self.low_feature_sizes)
+        self.seg_decoder = SegModel(self.low_feature_sizes, args)
 
         chan = int(self.num_channels)
         self.depth_decoder = DepthModel(chan, self.low_feature_sizes)
 
-        self.vo_decoder = OdometryModel(int(chan*1.5), img_size)
+        self.vo_decoder = OdometryModel(int(chan*1.5), img_size, args)
 
         initial_weight(self.modules())
 
