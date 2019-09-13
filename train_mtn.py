@@ -195,6 +195,8 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in args.gpu_ids)
         print("Let's use GPU(s): {}. Current Device: {}".format(
             torch.cuda.device_count(), torch.cuda.current_device()))
+    else:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     print(args)
     keeper.save_experiment_config()
